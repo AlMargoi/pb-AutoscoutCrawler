@@ -2,6 +2,8 @@ from enum import Enum
 
 class Country(Enum):
     GERMANY = "D"
+    NETHERLANDS = "NL"
+
 
 class City(Enum):
     BERLIN = "Berlin"

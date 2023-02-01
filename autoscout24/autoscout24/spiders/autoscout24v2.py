@@ -18,21 +18,21 @@ import socket
 import uuid
 
 
-class Autoscout24Spider(scrapy.Spider):
+class Autoscout24Spider2(scrapy.Spider):
     MAX_PAGES = 20
-    name = 'autoscout24'
-    allowed_domains = ['web', 'autoscout24.com']
-    start_urls = ['https://www.autoscout24.com/lst?&sort=age&desc=1&ustate=N%2CU&size=20&cy=D&atype=C&page=1']
+    name = 'autoscout24v2'
+    allowed_domains = ['autoscout24.com']
+    start_urls = ['https://www.autoscout24.com/']
 
-    def parse(self, response):
-        page_count = 20
+    def start_requests(self):
+        page_count = 5
         # Get the next index URLs and yield Requests
         for make in Make:
             for model in Model:
                 for sortcrit in SortCriteria:
                     for desc in SortDirection:
                         for idx in range(1, page_count+1):                    
-                            yield Request(
+                            yield scrapy.Request(
                                 'https://www.autoscout24.com/lst'
                                 + make.value
                                 + model.value
@@ -64,23 +64,12 @@ class Autoscout24Spider(scrapy.Spider):
                                 + PriceFrom.FROM_8000.value
                                 + '&atype=C&page='
                                 + str(idx)
-                            )
-
-        # Get item URLs and yield Requests
-        item_selector = response.xpath('//*[@class="cldt-summary-titles"]/a/@href')
-        for url in item_selector.extract():
-            yield Request(urljoin(response.url, url), callback=self.parse_item)
-
-    def parse_item(self, response):
-        """ This function parses a car page.
-        @url https://www.autoscout24.com/offers/ferrari-monza-sp2-ready-now-export-worldwide-gasoline-red-662f3a46-7168-46e5-b284-6636e5276303?cldtidx=1&cldtsrc=listPage
-        @returns items 1
-        @scrapes make model version registration price_euro driven_km power_kW
-        @scrapes url project spider server date
-        """
-
-        self.log("Visited %s" % response.url)
-        for car in response.selector.xpath("//main[@class='ListPage_main__L0gsf']/article").get():
+                            , callback=self.parse)
+        
+    def parse(self, response):
+        for index, car in enumerate(response.xpath("//main[@class='ListPage_main__L0gsf']/article")):
             yield {
-                'Model' : car.selector.xpath("/div[@class='ListItem_header__uPzec']//h2/text()").get(), 
+                'Model' : car.xpath("//div[@class='ListItem_header__uPzec']//h2/text()").get(), 
+                'Details' : car.xpath("//div[@class='ListItem_header__uPzec']//span[@class='ListItem_version__jNjur']/text()").get(),
+                'Price' : car.xpath("//p[@class='Price_price__WZayw']/text()").get(),
             }
